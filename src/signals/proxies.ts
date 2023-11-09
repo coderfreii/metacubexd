@@ -86,7 +86,12 @@ const setProxiesInfo = (
       }
     }
 
-    return proxy.history?.at(-1)?.delay
+    const len = Object.entries(proxy.extra).length
+
+    if (len <= 1) {
+      // due to extra ipv6 latency test the index of -1 is ipv6 latency
+      return proxy.history?.at(-2)?.delay
+    }
   }
 
   proxies.forEach((proxy) => {
@@ -238,7 +243,7 @@ export const useProxies = () => {
   }
 
   const proxyGroupLatencyTest = async (proxyGroupName: string) => {
-    setProxyGroupLatencyTestingMap(proxyGroupName, async () => {
+    await setProxyGroupLatencyTestingMap(proxyGroupName, async () => {
       const newLatencyMap = await proxyGroupLatencyTestAPI(
         proxyGroupName,
         urlForLatencyTest(),
@@ -249,8 +254,8 @@ export const useProxies = () => {
         ...latencyMap,
         ...newLatencyMap,
       }))
-
-      await fetchProxies()
+      // no need to call fetchProxies here, and it causes bug because the extra ipv6 latency test after
+      // await fetchProxies()
     })
     await proxyGroupIPv6SupportTest(proxyGroupName)
   }
