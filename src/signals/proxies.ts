@@ -239,7 +239,7 @@ export const useProxies = () => {
   }
 
   const proxyLatencyTest = async (proxyName: string, provider: string) => {
-    setProxyLatencyTestingMap(proxyName, async () => {
+    await setProxyLatencyTestingMap(proxyName, async () => {
       const { delay } = await proxyLatencyTestAPI(
         proxyName,
         provider,
@@ -257,6 +257,17 @@ export const useProxies = () => {
 
   const proxyGroupLatencyTest = async (proxyGroupName: string) => {
     await setProxyGroupLatencyTestingMap(proxyGroupName, async () => {
+      await proxyGroupLatencyTestAPI(
+        proxyGroupName,
+        'https://google.com', //anything different from current using testing url should be fine.
+        //all the reason to do this is that the meta core just doesn't record the very first group check url into the "extra" filed
+        //no matter how many times,and testing single one proxy does.
+        //in the meantime the "history" filed records everything had been tested which is kind messy to use.
+        //the whole situation we have that make it difficult to distinguish from those cases, so we first test one url we don't need, thus no first at all.problem solved!
+        //after all it should be the problem for the core to solve which didn't perfectly support test more than one url feature. here is just a hack way.
+        latencyTestTimeoutDuration(),
+      )
+
       const newLatencyMap = await proxyGroupLatencyTestAPI(
         proxyGroupName,
         urlForLatencyTest(),
