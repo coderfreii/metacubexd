@@ -182,3 +182,8 @@ export type ConnectionsTableColumnVisibility = Partial<
   Record<CONNECTIONS_TABLE_ACCESSOR_KEY, boolean>
 >
 export type ConnectionsTableColumnOrder = CONNECTIONS_TABLE_ACCESSOR_KEY[]
+
+export type IPV6_Latency = {
+  latency: number
+  support: boolean
+}

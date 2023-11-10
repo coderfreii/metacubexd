@@ -19,7 +19,7 @@ import {
   urlForIPv6SupportTest,
   urlForLatencyTest,
 } from '~/signals'
-import type { Proxy, ProxyNode, ProxyProvider } from '~/types'
+import type { IPV6_Latency, Proxy, ProxyNode, ProxyProvider } from '~/types'
 
 type ProxyInfo = {
   name: string
@@ -58,7 +58,7 @@ const [proxyProviders, setProxyProviders] = createSignal<
 
 const [latencyMap, setLatencyMap] = createSignal<Record<string, number>>({})
 const [proxyIPv6SupportMap, setProxyIPv6SupportMap] = createSignal<
-  Record<string, boolean>
+  Record<string, IPV6_Latency>
 >({})
 const [proxyNodeMap, setProxyNodeMap] = createSignal<Record<string, ProxyInfo>>(
   {},
@@ -102,9 +102,14 @@ const setProxiesInfo = (
       lastDelay(proxy, urlForLatencyTest()) || latencyQualityMap().NOT_CONNECTED
     newLatencyMap[proxy.name] = latency
 
-    const proxyIPv6Support =
-      (lastDelay(proxy, urlForIPv6SupportTest(), false) ?? 0) > 0
-    newProxyIPv6SupportMap[proxy.name] = proxyIPv6Support
+    const proxyIPv6Latency =
+      lastDelay(proxy, urlForIPv6SupportTest(), false) ||
+      latencyQualityMap().NOT_CONNECTED
+    const proxyIPv6Support = (proxyIPv6Latency ?? 0) > 0
+    newProxyIPv6SupportMap[proxy.name] = {
+      support: proxyIPv6Support,
+      latency: proxyIPv6Latency,
+    }
   })
 
   batch(() => {
@@ -186,6 +191,7 @@ export const useProxies = () => {
     }
 
     let support = false
+    let latency = 0
     try {
       const { delay } = await proxyLatencyTestAPI(
         proxyName,
@@ -193,13 +199,17 @@ export const useProxies = () => {
         urlForTest,
         latencyTestTimeoutDuration(),
       )
+      latency = delay
       support = delay > 0
     } catch {
       support = false
     }
     setProxyIPv6SupportMap((supportMap) => ({
       ...supportMap,
-      [proxyName]: support,
+      [proxyName]: {
+        support,
+        latency,
+      },
     }))
   }
   const proxyGroupIPv6SupportTest = async (proxyGroupName: string) => {
@@ -217,7 +227,10 @@ export const useProxies = () => {
       latencyTestTimeoutDuration(),
     )
     const newSupportMap = Object.fromEntries(
-      Object.entries(newLatencyMap).map(([k, v]) => [k, v > 0]),
+      Object.entries(newLatencyMap).map(([k, v]) => [
+        k,
+        { support: v > 0, latency: v },
+      ]),
     )
     setProxyIPv6SupportMap((supportMap) => ({
       ...supportMap,
