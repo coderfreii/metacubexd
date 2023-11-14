@@ -25,6 +25,10 @@ export const useConnections = () => {
   const [activeConnections, setActiveConnections] = createSignal<Connection[]>(
     [],
   )
+  const [virtualConnections, setVirtualConnections] = createSignal<
+    Map<string, Connection>
+  >(new Map<string, Connection>())
+
   const [paused, setPaused] = createSignal(false)
 
   createEffect(() => {
@@ -42,6 +46,11 @@ export const useConnections = () => {
 
       mergeAllConnections(activeConnections())
 
+      const virtualConns = reStructAllActiveConnectionsToVirtualConnection(
+        virtualConnections(),
+        activeConns,
+      )
+
       if (!paused()) {
         const closedConns = diffClosedConnections(activeConns, allConnections())
 
@@ -49,6 +58,7 @@ export const useConnections = () => {
         setClosedConnections(
           closedConns.slice(-CONNECTIONS_TABLE_MAX_CLOSED_ROWS),
         )
+        setVirtualConnections(virtualConns)
       }
 
       setAllConnections((allConnections) =>
@@ -64,7 +74,72 @@ export const useConnections = () => {
     activeConnections,
     paused,
     setPaused,
+    virtualConnections,
   }
+}
+
+export const reStructAllActiveConnectionsToVirtualConnection = (
+  pre: Map<string, Connection>,
+  allActiveConnections: Connection[],
+): Map<string, Connection> => {
+  const currentMap = new Map<string, Connection>()
+
+  allActiveConnections.forEach((connection) => {
+    let current
+    let prevConn
+
+    if (connection.chains.includes('Proxy')) {
+      current = currentMap.get('Proxy')
+      prevConn = pre.get('Proxy')
+
+      if (
+        !current ||
+        !isNumber(current.download) ||
+        !isNumber(current.upload)
+      ) {
+        current = {
+          ...connection,
+          upload: prevConn?.upload || 0,
+          download: prevConn?.download || 0,
+          preserve: 'Proxy',
+        }
+        currentMap.set('Proxy', current)
+      }
+    } else {
+      current = currentMap.get('DIRECT')
+      prevConn = pre.get('DIRECT')
+
+      if (
+        !current ||
+        !isNumber(current.download) ||
+        !isNumber(current.upload)
+      ) {
+        current = {
+          ...connection,
+          upload: prevConn?.upload || 0,
+          download: prevConn?.download || 0,
+          preserve: 'DIRECT',
+        }
+        currentMap.set('DIRECT', current)
+      }
+    }
+
+    if (prevConn && current) {
+      current.upload += connection.uploadSpeed
+      current.download += connection.downloadSpeed
+
+      current.downloadSpeed += connection.downloadSpeed
+      current.uploadSpeed += connection.uploadSpeed
+    } else if (current) {
+      current.upload += connection.upload
+      current.download += connection.download
+
+      current.downloadSpeed += connection.downloadSpeed
+      current.uploadSpeed += connection.uploadSpeed
+    }
+  })
+
+  return currentMap
 }
 
 export const restructRawMsgToConnection = (

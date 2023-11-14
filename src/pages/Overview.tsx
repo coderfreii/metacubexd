@@ -14,7 +14,12 @@ import {
 } from 'solid-js'
 import { CHART_MAX_XAXIS, DEFAULT_CHART_OPTIONS } from '~/constants'
 import { useI18n } from '~/i18n'
-import { endpoint, latestConnectionMsg, useWsRequest } from '~/signals'
+import {
+  endpoint,
+  latestConnectionMsg,
+  useConnections,
+  useWsRequest,
+} from '~/signals'
 
 const TrafficWidget: ParentComponent<{ label: JSX.Element }> = (props) => (
   <div class="stat flex-1 place-items-center">
@@ -26,6 +31,8 @@ const TrafficWidget: ParentComponent<{ label: JSX.Element }> = (props) => (
 )
 
 export default () => {
+  const { virtualConnections } = useConnections()
+
   const [t] = useI18n()
 
   const [traffics, setTraffics] = createSignal<{ down: number; up: number }[]>(
@@ -103,6 +110,56 @@ export default () => {
 
         <TrafficWidget label={t('downloadTotal')}>
           {byteSize(latestConnectionMsg()?.downloadTotal || 0).toString()}
+        </TrafficWidget>
+
+        <TrafficWidget label={t('pUpload')}>
+          {byteSize(
+            virtualConnections()?.get('Proxy')?.uploadSpeed || 0,
+          ).toString()}
+          /s
+        </TrafficWidget>
+
+        <TrafficWidget label={t('pDownload')}>
+          {byteSize(
+            virtualConnections()?.get('Proxy')?.downloadSpeed || 0,
+          ).toString()}
+          /s
+        </TrafficWidget>
+
+        <TrafficWidget label={t('pUploadTotal')}>
+          {byteSize(virtualConnections()?.get('Proxy')?.upload || 0).toString()}
+        </TrafficWidget>
+
+        <TrafficWidget label={t('pDownloadTotal')}>
+          {byteSize(
+            virtualConnections()?.get('Proxy')?.download || 0,
+          ).toString()}
+        </TrafficWidget>
+
+        <TrafficWidget label={t('dUpload')}>
+          {byteSize(
+            virtualConnections()?.get('DIRECT')?.uploadSpeed || 0,
+          ).toString()}
+          /s
+        </TrafficWidget>
+
+        <TrafficWidget label={t('dDownload')}>
+          {byteSize(
+            virtualConnections()?.get('DIRECT')?.downloadSpeed || 0,
+          ).toString()}
+          /s
+        </TrafficWidget>
+
+        <TrafficWidget label={t('dUploadTotal')}>
+          {byteSize(
+            virtualConnections()?.get('DIRECT')?.upload || 0,
+          ).toString()}
+        </TrafficWidget>
+
+        <TrafficWidget label={t('dDownloadTotal')}>
+          {byteSize(
+            virtualConnections()?.get('DIRECT')?.download || 0,
+          ).toString()}
         </TrafficWidget>
 
         <TrafficWidget label={t('activeConnections')}>

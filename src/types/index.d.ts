@@ -106,6 +106,7 @@ export type ConnectionRawMessage = {
 export type Connection = ConnectionRawMessage & {
   downloadSpeed: number
   uploadSpeed: number
+  preserve?: string
 }
 
 export type Log = {
